@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Recognition Attendance</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #667eea;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #718096;
+            margin-bottom: 30px;
+        }
+        
+        .button-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            display: block;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            text-decoration: none;
+            border-radius: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+        
+        .btn-info {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .features {
+            background: #f7f9fc;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .features h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .features li {
+            margin-left: 20px;
+            padding: 5px 0;
+            color: #4a5568;
+        }
+        
+        .badge {
+            display: inline-block;
+            background: #48bb78;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📸 Face Recognition Attendance System</h1>
+        <p class="subtitle">99%+ Accuracy | AI-Powered | Automatic Recognition</p>
+        
+        <div class="button-grid">
+            <a href="/register" class="btn btn-primary">📝 Register New Face</a>
+            <a href="/mark" class="btn btn-success">✓ Mark Attendance</a>
+            <a href="/report" class="btn btn-info">📊 View Report</a>
+        </div>
+        
+        <div class="features">
+            <h3>✨ Features</h3>
+            <ul>
+                <li>High-accuracy face detection (only face, no body)</li>
+                <li>Deep learning face recognition (99%+ accuracy)</li>
+                <li>Automatic identification - no manual name selection</li>
+                <li>Prevents duplicate registrations (same name or same face)</li>
+                <li>Prevents duplicate daily attendance</li>
+                <li>Export reports to CSV format</li>
+            </ul>
+            <div class="badge">Powered by OpenCV SFace Model</div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance Report</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #3182ce;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #48bb78;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        .delete-btn {
+            background: #f44336;
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        .delete-btn:hover {
+            background: #d32f2f;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        
+        th {
+            background: #4299e1;
+            color: white;
+            font-weight: bold;
+        }
+        
+        tr:nth-child(even) {
+            background: #f7f9fc;
+        }
+        
+        tr:hover {
+            background: #e3f2fd;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .stats {
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e2e8f0;
+            text-align: center;
+            color: #4a5568;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+            text-align: center;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 Attendance Report</h1>
+        
+        <div class="toolbar">
+            <button onclick="exportCSV()">📥 Export to CSV</button>
+            <button onclick="loadReport()">🔄 Refresh</button>
+        </div>
+        
+        <div style="overflow-x: auto;">
+            <table id="reportTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="reportBody">
+                    <tr>
+                        <td colspan="4" class="empty-state">Loading attendance records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="stats" class="stats"></div>
+        
+        <div class="text-center">
+            <a href="/" class="back-link">← Back to Home</a>
+        </div>
+    </div>
+    
+    <script>
+        async function loadReport() {
+            try {
+                let response = await fetch('/api/report');
+                let records = await response.json();
+                
+                let tbody = document.getElementById('reportBody');
+                let statsDiv = document.getElementById('stats');
+                
+                if (records.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="empty-state">📭 No attendance records found</td></tr>';
+                    statsDiv.innerHTML = '';
+                    return;
+                }
+                
+                tbody.innerHTML = '';
+                records.forEach(record => {
+                    let row = tbody.insertRow();
+                    row.insertCell(0).textContent = record.name;
+                    row.insertCell(1).textContent = record.date;
+                    row.insertCell(2).textContent = record.time;
+                    
+                    let actionCell = row.insertCell(3);
+                    let deleteBtn = document.createElement('button');
+                    deleteBtn.textContent = '🗑️ Delete';
+                    deleteBtn.className = 'delete-btn';
+                    deleteBtn.onclick = () => deleteRecord(record.id, record.name);
+                    actionCell.appendChild(deleteBtn);
+                });
+                
+                // Calculate statistics
+                let uniqueNames = [...new Set(records.map(r => r.name))];
+                let today = new Date().toISOString().split('T')[0];
+                let todayCount = records.filter(r => r.date === today).length;
+                
+                statsDiv.innerHTML = `📊 Total: ${records.length} entries | 👥 ${uniqueNames.length} people | ✅ Today: ${todayCount}`;
+                
+            } catch (error) {
+                document.getElementById('reportBody').innerHTML = '<tr><td colspan="4" class="empty-state">❌ Error loading report: ' + error.message + '</td></tr>';
+            }
+        }
+        
+        async function deleteRecord(id, name) {
+            if (confirm(`Delete attendance record for ${name}?`)) {
+                try {
+                    let response = await fetch(`/api/attendance/${id}`, { method: 'DELETE' });
+                    let result = await response.json();
+                    
+                    if (result.success) {
+                        loadReport();
+                    } else {
+                        alert('Failed to delete record');
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                }
+            }
+        }
+        
+        function exportCSV() {
+            fetch('/api/report')
+                .then(response => response.json())
+                .then(records => {
+                    let csv = 'Name,Date,Time\n';
+                    records.forEach(r => {
+                        csv += `"${r.name}",${r.date},${r.time}\n`;
+                    });
+                    
+                    let blob = new Blob([csv], { type: 'text/csv' });
+                    let link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `attendance_report_${new Date().toISOString().split('T')[0]}.csv`;
+                    link.click();
+                });
+        }
+        
+        // Load report on page load
+        loadReport();
+        
+        // Auto-refresh every 10 seconds
+        setInterval(loadReport, 10000);
+    </script>
+</body>
+</html>

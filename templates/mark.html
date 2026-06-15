@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mark Attendance - Automatic Recognition</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 550px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #38a169;
+            margin-bottom: 10px;
+        }
+        
+        .info-text {
+            color: #718096;
+            margin-bottom: 20px;
+        }
+        
+        video {
+            border: 3px solid #48bb78;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 15px;
+            background: #f7f9fc;
+        }
+        
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            background: #48bb78;
+            color: white;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .success {
+            color: #38a169;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 10px;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+            margin-top: 20px;
+            padding: 15px;
+            background: #ffebee;
+            border-radius: 10px;
+        }
+        
+        .info {
+            color: #667eea;
+            margin-top: 20px;
+            padding: 10px;
+        }
+        
+        .registered-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f7f9fc;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #4a5568;
+        }
+        
+        canvas {
+            display: none;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #48bb78;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✓ Mark Attendance</h1>
+        <p class="info-text">Look at the camera - AI will automatically recognize you!</p>
+        
+        <video id="video" autoplay playsinline></video>
+        <br>
+        <button id="recognizeBtn">🔍 Recognize My Face</button>
+        
+        <canvas id="canvas"></canvas>
+        
+        <div id="message"></div>
+        
+        <div id="registeredList" class="registered-list">
+            📋 Loading registered users...
+        </div>
+        
+        <br>
+        <a href="/" class="back-link">← Back to Home</a>
+    </div>
+    
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let recognizeBtn = document.getElementById('recognizeBtn');
+        
+        // Start camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                document.getElementById('message').innerHTML = '<div class="error">❌ Camera error: ' + err.message + '</div>';
+            });
+        
+        // Load registered users
+        async function loadRegisteredUsers() {
+            try {
+                let response = await fetch('/api/people');
+                let people = await response.json();
+                let listDiv = document.getElementById('registeredList');
+                
+                if (people.length === 0) {
+                    listDiv.innerHTML = '📭 No registered users found. Please register first.';
+                } else {
+                    listDiv.innerHTML = '📋 Registered users: ' + people.join(', ');
+                }
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+        
+        // Recognize and mark attendance
+        recognizeBtn.onclick = async function() {
+            // Capture photo
+            let context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            let blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+            
+            let formData = new FormData();
+            formData.append('photo', blob, 'face.jpg');
+            
+            let messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = '<div class="info"><span class="loading"></span> AI analyzing your face...</div>';
+            recognizeBtn.disabled = true;
+            
+            try {
+                let response = await fetch('/api/recognize', { method: 'POST', body: formData });
+                let result = await response.json();
+                
+                if (result.success) {
+                    messageDiv.innerHTML = '<div class="success">' + result.message + '</div>';
+                    loadRegisteredUsers(); // Refresh the list
+                } else {
+                    messageDiv.innerHTML = '<div class="error">' + result.message + '</div>';
+                }
+            } catch (error) {
+                messageDiv.innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+            
+            recognizeBtn.disabled = false;
+            
+            // Clear message after 5 seconds
+            setTimeout(() => {
+                if (messageDiv.innerHTML) messageDiv.innerHTML = '';
+            }, 5000);
+        };
+        
+        // Initial load
+        loadRegisteredUsers();
+        
+        // Refresh user list every 10 seconds
+        setInterval(loadRegisteredUsers, 10000);
+    </script>
+</body>
+</html>

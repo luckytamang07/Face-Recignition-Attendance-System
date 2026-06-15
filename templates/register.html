@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register Face</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 30px;
+            max-width: 550px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .info-text {
+            color: #718096;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        video {
+            border: 3px solid #667eea;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 400px;
+            margin-bottom: 15px;
+            background: #f7f9fc;
+        }
+        
+        button {
+            padding: 12px 24px;
+            margin: 10px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        button:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-capture {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-register {
+            background: #48bb78;
+            color: white;
+        }
+        
+        input {
+            padding: 12px;
+            width: 80%;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .success {
+            color: #48bb78;
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f5e9;
+            border-radius: 8px;
+        }
+        
+        .error {
+            color: #f44336;
+            font-weight: bold;
+            margin-top: 15px;
+            padding: 10px;
+            background: #ffebee;
+            border-radius: 8px;
+        }
+        
+        .info {
+            color: #667eea;
+            margin-top: 15px;
+        }
+        
+        canvas {
+            display: none;
+        }
+        
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📝 Register New Face</h1>
+        <p class="info-text">AI will detect and save ONLY your face (99%+ accuracy)</p>
+        
+        <video id="video" autoplay playsinline></video>
+        <br>
+        <button id="captureBtn" class="btn-capture">📸 Capture Photo</button>
+        
+        <canvas id="canvas"></canvas>
+        
+        <br>
+        <input type="text" id="name" placeholder="Enter your full name">
+        <br>
+        <button id="registerBtn" class="btn-register">✅ Register Face</button>
+        
+        <div id="message"></div>
+        
+        <br>
+        <a href="/" class="back-link">← Back to Home</a>
+    </div>
+    
+    <script>
+        let video = document.getElementById('video');
+        let canvas = document.getElementById('canvas');
+        let capturedImage = null;
+        
+        // Start camera
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                video.srcObject = stream;
+            })
+            .catch(err => {
+                document.getElementById('message').innerHTML = '<div class="error">❌ Camera error: ' + err.message + '</div>';
+            });
+        
+        // Capture photo
+        document.getElementById('captureBtn').onclick = function() {
+            let context = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            capturedImage = canvas.toDataURL('image/jpeg');
+            document.getElementById('message').innerHTML = '<div class="success">✅ Photo captured! Ready to register.</div>';
+        };
+        
+        // Register face
+        document.getElementById('registerBtn').onclick = async function() {
+            let name = document.getElementById('name').value.trim();
+            if (!name) {
+                document.getElementById('message').innerHTML = '<div class="error">❌ Please enter your name</div>';
+                return;
+            }
+            if (!capturedImage) {
+                document.getElementById('message').innerHTML = '<div class="error">❌ Please capture a photo first</div>';
+                return;
+            }
+            
+            document.getElementById('message').innerHTML = '<div class="info">🔄 AI analyzing face...</div>';
+            document.getElementById('registerBtn').disabled = true;
+            
+            let blob = await fetch(capturedImage).then(r => r.blob());
+            let formData = new FormData();
+            formData.append('name', name);
+            formData.append('photo', blob, 'face.jpg');
+            
+            try {
+                let response = await fetch('/api/register', { method: 'POST', body: formData });
+                let result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('message').innerHTML = '<div class="success">✅ ' + result.message + '</div>';
+                    document.getElementById('name').value = '';
+                    capturedImage = null;
+                } else {
+                    document.getElementById('message').innerHTML = '<div class="error">❌ ' + result.message + '</div>';
+                }
+            } catch (error) {
+                document.getElementById('message').innerHTML = '<div class="error">❌ Error: ' + error.message + '</div>';
+            }
+            
+            document.getElementById('registerBtn').disabled = false;
+        };
+    </script>
+</body>
+</html>
